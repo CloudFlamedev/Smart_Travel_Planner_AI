@@ -1,148 +1,218 @@
-# Smart Travel Planner
+<div align="center">
 
-An intentionally small, AI-powered travel-planning project for learning FastAPI, React + TypeScript, REST APIs, Docker, and local full-stack development.
+# ✈️ Smart Travel Planner AI
 
-It accepts a trip’s origin, destination, duration, travellers, budget, and interests, then uses Groq to create a structured itinerary. Transport pricing is always presented as an approximate estimate; it is not live pricing or booking availability.
+**An AI-powered trip planning app that turns a few inputs — origin, destination, duration, budget — into a fully structured, personalized itinerary in seconds.**
 
-## Architecture
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://smart-travel-planner-ai-five.vercel.app)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](#-running-with-docker)
+[![CI](https://img.shields.io/badge/CI-Jenkins-D24939?logo=jenkins&logoColor=white)](#-cicd)
+[![IaC](https://img.shields.io/badge/IaC-Terraform%20%2B%20Kubernetes-844FBA?logo=terraform&logoColor=white)](#-cloud-deployment-aws)
+[![License](https://img.shields.io/badge/license-MIT-blue)](#-license)
 
-```text
-React + Vite (localhost:5173)
-          │ POST /api/trips/plan
-          ▼
-FastAPI (localhost:8000) ──► Groq Chat Completions API
-          │                         │
-          └── validates JSON ◄──────┘
+[Live Demo](https://smart-travel-planner-ai-five.vercel.app) · [Report an Issue](../../issues)
+
+</div>
+
+---
+
+## 📖 Overview
+
+Smart Travel Planner AI is a full-stack web application that generates a custom travel itinerary using a large language model. A user fills in a short form — **From, To, Duration, Travelers, Budget,** and optional **Interests** — and the backend calls an LLM (via Groq) to produce a structured plan: places to visit, a getting-there breakdown, and practical AI-generated travel notes, all rendered as a clean, card-based UI.
+
+The project was built to be **cloud-portable by design**: the same Docker images run identically on a local machine, on Vercel (current live deployment), or on AWS EKS via the included Terraform + Kubernetes configuration — with one CI/CD pipeline (Jenkins) driving builds and tests across all of it.
+
+## 🌐 Live Demo
+
+**[smart-travel-planner-ai-five.vercel.app](https://smart-travel-planner-ai-five.vercel.app)**
+
+Try it with something like: *From: Delhi → To: Kashmir, 4 days, 2 travelers, ₹20,000 budget.*
+
+## ✨ Features
+
+- **AI-generated itineraries** — natural-language trip requirements turned into structured JSON (places, categories, descriptions) by an LLM, not a static template.
+- **Categorized places to visit** — each recommendation tagged (Nature, Cultural, Adventure, Scenic Spot, etc.) with a short description.
+- **AI travel notes** — practical, trip-specific tips (packing, cash/connectivity, local customs, safety) generated alongside the itinerary.
+- **Getting-there guidance** — transport context between origin and destination.
+- **Budget- and traveler-aware planning** — the model factors in party size and budget when shaping recommendations.
+- **Responsive, modern UI** — card-based layout built with React, TypeScript, and Tailwind CSS.
+- **Graceful failure handling** — clear, user-facing error states instead of silent failures or raw stack traces.
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React, TypeScript, Vite, Tailwind CSS, Axios |
+| **Backend** | Python, FastAPI, Pydantic |
+| **AI / LLM** | Groq API (`openai/gpt-oss-20b`) |
+| **Containerization** | Docker, Docker Compose |
+| **CI/CD** | Jenkins (test → build → containerize pipeline) |
+| **Hosting (current)** | Vercel (serverless functions + static frontend) |
+| **Infrastructure as Code** | Terraform (VPC, ECR, EKS) |
+| **Orchestration** | Kubernetes (Deployments, Services, Ingress, HPA) — AWS EKS-ready |
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐        HTTPS         ┌──────────────────────┐
+│   React + Vite    │ ───────────────────▶ │   FastAPI Backend    │
+│   (frontend)       │  POST /api/trips/plan │   (backend)           │
+│   Tailwind UI       │ ◀─────────────────── │   Pydantic schemas    │
+└─────────────────┘      JSON itinerary    └───────────┬──────────┘
+                                                          │
+                                                          ▼
+                                                 ┌──────────────────┐
+                                                 │   Groq LLM API    │
+                                                 │ openai/gpt-oss-20b │
+                                                 └──────────────────┘
 ```
 
-No database is required in this first version. Trips are generated on demand and are not stored.
+Both services are independently Dockerized and communicate over a defined API contract (`/api/trips/plan`), which keeps the frontend and backend deployable together *or* separately — the same layout works whether they're two containers in Docker Compose, two Kubernetes Deployments behind one Ingress, or a static frontend + serverless function on Vercel.
 
-## Technology
+## 📁 Project Structure
 
-- Frontend: React, TypeScript, Vite, Tailwind CSS, Axios, Lucide icons
-- Backend: Python, FastAPI, Pydantic, httpx, Uvicorn
-- AI: Groq’s OpenAI-compatible chat-completions API with JSON-schema structured output
-- Local containers: Docker and Docker Compose
-
-## Folder structure
-
-```text
-.
-├── backend/
+```
+Smart_Travel_Planner/
+├── frontend/                 # React + TypeScript + Vite app
+│   ├── src/
+│   │   ├── api.ts             # Axios client, same-origin by default
+│   │   ├── App.tsx
+│   │   ├── types.ts
+│   │   └── components/
+│   ├── Dockerfile
+│   └── package.json
+├── backend/                  # FastAPI service
 │   ├── app/
-│   │   ├── api/trip.py          # trip endpoint
-│   │   ├── core/config.py       # environment settings
-│   │   ├── schemas/trip.py      # Pydantic request / response models
-│   │   ├── services/groq_service.py
-│   │   └── main.py
-│   ├── tests/test_api.py
+│   │   ├── main.py             # FastAPI app, routes, health check
+│   │   ├── core/                # config, settings
+│   │   ├── schemas/               # Pydantic request/response models
+│   │   └── services/               # Groq LLM integration
 │   ├── requirements.txt
 │   └── Dockerfile
-├── frontend/
-│   ├── src/components/
-│   ├── src/api.ts
-│   ├── src/types.ts
-│   └── Dockerfile
-├── .env.example
-└── docker-compose.yml
+├── api/                       # Vercel serverless entrypoint
+│   └── index.py
+├── infra/                     # AWS-ready Infrastructure as Code
+│   ├── terraform/                # VPC, ECR, EKS cluster
+│   └── k8s/                       # Deployments, Services, Ingress, HPA
+├── docker-compose.yml         # Local multi-container dev environment
+├── vercel.json                # Vercel build + routing config
+├── Jenkinsfile                # CI pipeline definition
+└── README.md
 ```
 
-## Environment variables
+## 🚀 Getting Started
 
-Create the local file before running the app:
+### Prerequisites
+
+- [Docker](https://www.docker.com/) & Docker Compose
+- A [Groq API key](https://console.groq.com/) (free tier available)
+- Node.js 18+ and Python 3.12+ (only needed for running outside Docker)
+
+### Run with Docker (recommended)
 
 ```bash
-cp .env.example .env
+git clone https://github.com/CloudFlamedev/Smart_Travel_Planner_AI.git
+cd Smart_Travel_Planner_AI
+
+# Create a .env file at the project root
+echo "GROQ_API_KEY=your_key_here" > .env
+
+docker-compose up --build
 ```
 
-Then add your Groq key:
+- Frontend → [http://localhost:5173](http://localhost:5173)
+- Backend API → [http://localhost:8000](http://localhost:8000)
+- Health check → [http://localhost:8000/health](http://localhost:8000/health)
 
-```dotenv
-GROQ_API_KEY=your_groq_api_key_here
-GROQ_MODEL=openai/gpt-oss-20b
-FRONTEND_ORIGIN=http://localhost:5173
-```
+### Run without Docker
 
-`GROQ_API_KEY` is read only by FastAPI. Never add it to a `VITE_*` variable or expose it in frontend code. `.env` is ignored by Git.
-
-## Run locally
-
-Requirements: Python 3.11+ and Node.js 20+.
-
-In one terminal, start the API:
-
+**Backend:**
 ```bash
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+export GROQ_API_KEY=your_key_here
 uvicorn app.main:app --reload --port 8000
 ```
 
-In a second terminal, start the frontend:
-
+**Frontend:**
 ```bash
 cd frontend
-cp .env.example .env
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. The provided frontend environment points to `http://localhost:8000` by default.
+## 🔑 Environment Variables
 
-## API
+| Variable | Where | Description |
+|---|---|---|
+| `GROQ_API_KEY` | Backend | API key for the Groq LLM service |
+| `GROQ_MODEL` | Backend | Model identifier (default: `openai/gpt-oss-20b`) |
+| `FRONTEND_ORIGIN` | Backend | Allowed CORS origin for the frontend |
+| `VITE_API_URL` | Frontend (build-time) | Base API URL; left empty for same-origin deployments (Vercel/K8s), set for local dev pointing at a separate backend host |
 
-### Health check
+## 📡 API Reference
 
-`GET /health`
+**`POST /api/trips/plan`**
 
-```json
-{"status":"healthy"}
-```
-
-### Generate a plan
-
-`POST /api/trips/plan`
-
+Request body:
 ```json
 {
-  "source": "Bangalore",
-  "destination": "Delhi",
-  "duration": 4,
+  "origin": "Delhi",
+  "destination": "Kashmir",
+  "duration_days": 4,
   "travelers": 2,
   "budget": 20000,
-  "interests": ["history", "food", "culture"]
+  "interests": "history, food, culture"
 }
 ```
 
-The response contains the submitted trip facts, a list of places, approximate transport options, one itinerary entry per day, and four to six travel tips. Invalid input returns FastAPI’s standard `422` response. Missing configuration, Groq failures, timeouts, and malformed model output return clear `5xx` errors without returning fabricated travel data.
+Response: a structured itinerary — destination summary, categorized places to visit, transport notes, and AI-generated travel tips.
 
-Interactive API documentation is available at `http://localhost:8000/docs` while the backend is running.
+**`GET /api/health`** — liveness/readiness check, returns `{"status": "healthy"}`.
 
-## Groq integration
+## ⚙️ CI/CD
 
-The backend calls Groq directly with `httpx`. It sends a system instruction that prohibits claims of live prices or availability, asks for JSON matching the `TripPlan` schema, and validates the returned JSON with Pydantic before returning it to the browser. This keeps the frontend simple and keeps the secret key on the server.
+The Jenkins pipeline (`Jenkinsfile`) runs on every push:
 
-The default model supports Groq’s JSON-schema structured-output format. If you choose another model, confirm it supports structured outputs.
+1. **Checkout** — pull latest source
+2. **Backend Tests** — spin up a virtualenv, install dependencies, run `pytest`
+3. **Frontend Build** — `npm ci && npm run build`, catching build-time errors early
+4. **Docker Build** — build both service images via Compose, validating the containers are production-buildable before merge
 
-## Tests
+## ☁️ Deployment
 
-Tests never call Groq. They substitute a small in-memory service for the endpoint test.
+This project is deliberately built to run identically across environments:
 
-```bash
-cd backend
-source .venv/bin/activate
-pytest
-```
+- **Current live deployment:** [Vercel](https://vercel.com) — static frontend + FastAPI served as a serverless function, config in `vercel.json`.
+- **AWS-ready:** `infra/terraform/` provisions a VPC, ECR repositories, and an EKS cluster; `infra/k8s/` contains production-style Deployments, Services, an ALB Ingress, and a HorizontalPodAutoscaler for the backend — see [`infra/README.md`](infra/README.md) for the full walkthrough from `terraform apply` to `kubectl apply`.
 
-## Docker local setup
+Both deployment paths run from the **same Docker images**, so moving between them is a config change, not a rewrite.
 
-After creating root `.env` as above:
+## 🗺️ Roadmap
 
-```bash
-docker compose up --build
-```
+- [ ] Persist generated itineraries (database-backed trip history)
+- [ ] User accounts and saved trips
+- [ ] Multi-city / multi-leg itinerary support
+- [ ] Automated `kubectl apply` stage in the Jenkins pipeline
+- [ ] Unit test coverage for the frontend (Vitest)
 
-The frontend is served at `http://localhost:5173` and the API at `http://localhost:8000`. Stop the stack with `docker compose down`.
+## 🤝 Contributing
 
-This repository deliberately contains no AWS, Terraform, Kubernetes, Jenkins, booking, authentication, or database setup.
+Issues and pull requests are welcome. For significant changes, please open an issue first to discuss what you'd like to change.
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for details.
+
+## 👤 Author
+
+**Utkrist**
+Systems Engineer, TCS · Bengaluru, India
+GitHub: [@CloudFlamedev](https://github.com/CloudFlamedev)
+
+---
+
+<div align="center">
+Built as an end-to-end exercise in shipping a full-stack AI product — from LLM integration and containerization to CI/CD and cloud-portable infrastructure.
+</div>
