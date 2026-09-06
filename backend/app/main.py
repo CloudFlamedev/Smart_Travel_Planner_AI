@@ -19,7 +19,7 @@ def create_app() -> FastAPI:
     app.state.groq_service = GroqService(settings)
     app.include_router(trip_router)
 
-    @app.get("/health")
+
     @app.get("/api/health")
     async def health_check() -> dict[str, str]:
         return {"status": "healthy"}
