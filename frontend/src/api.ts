@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { TripPlan, TripRequest } from './types'
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000', timeout: 45000 })
+const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? '', timeout: 45000 })
 
 export async function generateTrip(payload: TripRequest): Promise<TripPlan> {
   const response = await api.post<TripPlan>('/api/trips/plan', payload)
