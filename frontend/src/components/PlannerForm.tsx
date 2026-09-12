@@ -11,14 +11,50 @@ interface Props {
 
 const fieldClass = 'field-input'
 
+type NumericFieldKey = 'duration' | 'travelers' | 'budget'
+const NUMERIC_LIMITS: Record<NumericFieldKey, { min: number; max: number }> = {
+  duration: { min: 1, max: 30 },
+  travelers: { min: 1, max: 20 },
+  budget: { min: 1, max: 10_000_000 },
+}
+
 export function PlannerForm({ initialValues, loading, error, onSubmit }: Props) {
-  const [values, setValues] = useState({ ...initialValues, interestsText: '' })
+  const [values, setValues] = useState({
+    ...initialValues,
+    duration: String(initialValues.duration),
+    travelers: String(initialValues.travelers),
+    budget: String(initialValues.budget),
+    interestsText: '',
+  })
   const [validation, setValidation] = useState('')
-  const update = (key: keyof typeof values, value: string | number) => setValues((previous) => ({ ...previous, [key]: value }))
+  const update = (key: 'source' | 'destination' | 'interestsText', value: string) => setValues((previous) => ({ ...previous, [key]: value }))
+
+  // Keep numeric fields as sanitized strings (not numbers) so the box can be
+  // genuinely empty while editing, and so leading zeros never get typed
+  // alongside a real digit (e.g. "0" then "5" showing "05").
+  const updateNumeric = (key: NumericFieldKey, raw: string) => {
+    const digitsOnly = raw.replace(/[^0-9]/g, '')
+    const withoutLeadingZeros = digitsOnly.replace(/^0+(?=\d)/, '')
+    setValues((previous) => ({ ...previous, [key]: withoutLeadingZeros }))
+  }
+
+  // On blur, clamp to the field's valid range so an empty or out-of-range
+  // value (e.g. "999" days) never reaches submit as-is.
+  const clampNumeric = (key: NumericFieldKey) => () => {
+    const { min, max } = NUMERIC_LIMITS[key]
+    setValues((previous) => {
+      const parsed = Number(previous[key])
+      const safe = previous[key] === '' || Number.isNaN(parsed) ? min : Math.min(Math.max(parsed, min), max)
+      return { ...previous, [key]: String(safe) }
+    })
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (!values.source.trim() || !values.destination.trim() || values.duration < 1 || values.travelers < 1 || values.budget < 1) {
+    const duration = Number(values.duration || 0)
+    const travelers = Number(values.travelers || 0)
+    const budget = Number(values.budget || 0)
+    if (!values.source.trim() || !values.destination.trim() || duration < 1 || travelers < 1 || budget < 1) {
       setValidation('Please complete all required trip details.')
       return
     }
@@ -26,9 +62,9 @@ export function PlannerForm({ initialValues, loading, error, onSubmit }: Props) 
     await onSubmit({
       source: values.source.trim(),
       destination: values.destination.trim(),
-      duration: Number(values.duration),
-      travelers: Number(values.travelers),
-      budget: Number(values.budget),
+      duration,
+      travelers,
+      budget,
       interests: values.interestsText.split(',').map((interest) => interest.trim()).filter(Boolean),
     })
   }
@@ -56,13 +92,13 @@ export function PlannerForm({ initialValues, loading, error, onSubmit }: Props) 
 
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <Field label="Duration" icon={<CalendarDays size={16} />} suffix="days">
-          <input className={`${fieldClass} field-input-suffix`} type="number" min="1" max="30" value={values.duration} onChange={(event) => update('duration', Number(event.target.value))} aria-label="Duration in days" />
+          <input className={`${fieldClass} field-input-suffix`} type="number" inputMode="numeric" min="1" max="30" value={values.duration} onChange={(event) => updateNumeric('duration', event.target.value)} onBlur={clampNumeric('duration')} aria-label="Duration in days" />
         </Field>
         <Field label="Travelers" icon={<UsersRound size={16} />}>
-          <input className={fieldClass} type="number" min="1" max="20" value={values.travelers} onChange={(event) => update('travelers', Number(event.target.value))} aria-label="Number of travelers" />
+          <input className={fieldClass} type="number" inputMode="numeric" min="1" max="20" value={values.travelers} onChange={(event) => updateNumeric('travelers', event.target.value)} onBlur={clampNumeric('travelers')} aria-label="Number of travelers" />
         </Field>
         <Field label="Budget" icon={<IndianRupee size={16} />} suffix="INR">
-          <input className={`${fieldClass} field-input-suffix`} type="number" min="1" value={values.budget} onChange={(event) => update('budget', Number(event.target.value))} aria-label="Budget in rupees" />
+          <input className={`${fieldClass} field-input-suffix`} type="number" inputMode="numeric" min="1" value={values.budget} onChange={(event) => updateNumeric('budget', event.target.value)} onBlur={clampNumeric('budget')} aria-label="Budget in rupees" />
         </Field>
       </div>
 
