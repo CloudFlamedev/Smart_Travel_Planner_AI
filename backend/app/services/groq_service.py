@@ -13,15 +13,17 @@ from app.services.transport_service import apply_transport_duration_estimates
 
 SYSTEM_PROMPT = """You are a practical travel planning assistant. Create realistic and useful recommendations from the supplied trip details. Do not claim real-time ticket prices, live availability, or booking availability. Transportation prices must be approximate estimates.
 
+CRITICAL: "source" is only the city the traveler is departing FROM. It is used solely for the source field and for transport_options (getting from source to destination). It must never be used for places, itinerary activities, or travel_tips. Every place, every itinerary activity, and every travel tip must be about the DESTINATION city only — the city the traveler is visiting and will spend their time in. Do not mix in attractions, landmarks, or advice belonging to the source city.
+
 Return exactly one JSON object with no markdown, commentary, or extra keys. The object must include every one of these required top-level fields: source, destination, duration, travelers, budget, places, transport_options, itinerary, travel_tips.
 
 Field contract:
 - source and destination: strings that exactly echo the supplied cities.
 - duration, travelers, and budget: integers that exactly echo the supplied values.
-- places: an array of 3 to 8 objects. Every object has non-empty string name, category, and description fields.
-- transport_options: an array of 2 to 4 objects. Every object has non-empty string mode, estimated_cost, duration, and recommendation fields. estimated_cost must say Estimated or Approximate. Prefer Flight, Train, or Bus modes when practical. The backend independently calculates duration, so do not present its duration as live data.
-- itinerary: an array with exactly one object for each trip day, numbered consecutively from 1 through duration. Every object has integer day and a non-empty array of string activities.
-- travel_tips: an array of 4 to 6 useful non-empty strings.
+- places: an array of 3 to 8 objects, ALL located in the destination city (never the source city). Every object has non-empty string name, category, and description fields.
+- transport_options: an array of 2 to 4 objects covering the journey FROM the source city TO the destination city. Every object has non-empty string mode, estimated_cost, duration, and recommendation fields. estimated_cost must say Estimated or Approximate. Prefer Flight, Train, or Bus modes when practical. The backend independently calculates duration, so do not present its duration as live data.
+- itinerary: an array with exactly one object for each trip day, numbered consecutively from 1 through duration. Every object has integer day and a non-empty array of string activities, ALL taking place in the destination city (never the source city).
+- travel_tips: an array of 4 to 6 useful non-empty strings relevant to visiting the destination city.
 
 Never omit a required field. If a detail is uncertain, use a practical approximate recommendation rather than null, an empty object, or a missing field. All values must use the specified JSON types."""
 
@@ -64,7 +66,20 @@ class GroqService:
                             "travelers": request.travelers,
                             "budget": request.budget,
                             "interests": request.interests,
-                            "instructions": "Return every required field: source, destination, duration, travelers, budget, places, transport_options, itinerary, travel_tips. Do not omit any field, including travel_tips, places, transport_options, or itinerary, even when information is uncertain. Use approximate practical recommendations instead. Keep all values in their required JSON types. Include exactly one itinerary object for every requested trip day, numbered consecutively from 1 through duration. Costs are per person unless clearly stated otherwise.",
+                            "instructions": (
+                                f"The traveler is departing FROM {request.source} and visiting/spending their trip IN "
+                                f"{request.destination}. All places, itinerary activities, and travel_tips must be "
+                                f"about {request.destination} only — do not include anything located in "
+                                f"{request.source}. {request.source} should only appear in the source field and in "
+                                "transport_options as the origin of the journey. Return every required field: "
+                                "source, destination, duration, travelers, budget, places, transport_options, "
+                                "itinerary, travel_tips. Do not omit any field, including travel_tips, places, "
+                                "transport_options, or itinerary, even when information is uncertain. Use "
+                                "approximate practical recommendations instead. Keep all values in their required "
+                                "JSON types. Include exactly one itinerary object for every requested trip day, "
+                                "numbered consecutively from 1 through duration. Costs are per person unless "
+                                "clearly stated otherwise."
+                            ),
                         }
                     ),
                 },
