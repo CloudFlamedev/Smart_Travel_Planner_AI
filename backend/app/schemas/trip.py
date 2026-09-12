@@ -59,6 +59,10 @@ class TripPlan(StrictSchemaModel):
     transport_options: list[TransportOption] = Field(min_length=2, max_length=4)
     itinerary: list[ItineraryDay] = Field(min_length=1, max_length=30)
     travel_tips: list[str] = Field(min_length=4, max_length=6)
+    # Computed deterministically by the backend after the LLM response comes
+    # back (see budget_service.py) — never requested from or returned by the
+    # LLM, so it is intentionally absent from trip_plan_groq_schema().
+    budget_warning: str | None = Field(default=None)
 
     @model_validator(mode="after")
     def validate_itinerary_matches_duration(self) -> "TripPlan":

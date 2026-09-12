@@ -30,5 +30,6 @@ export interface TripPlan extends TripRequest {
   transport_options: TransportOption[]
   itinerary: ItineraryDay[]
   travel_tips: string[]
+  budget_warning?: string | null
 }
 

@@ -138,6 +138,9 @@ html.dark .theme-icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
 .snapshot-route svg { color: var(--coral-strong); }
 .snapshot-details { display: flex; flex-wrap: wrap; gap: .45rem .75rem; margin-top: .85rem; color: color-mix(in srgb, #fff 74%, transparent); font-size: .75rem; }
 .snapshot-details strong { color: #fff; }
+.budget-warning-banner { display: flex; align-items: flex-start; gap: .75rem; margin-bottom: 2.4rem; border: 1px solid color-mix(in srgb, var(--coral-strong) 45%, var(--line)); border-radius: 1rem; background: color-mix(in srgb, var(--coral-strong) 12%, var(--surface-soft)); padding: 1rem 1.15rem; color: var(--ink); }
+.budget-warning-banner svg { flex: 0 0 auto; margin-top: .1rem; color: var(--coral-strong); }
+.budget-warning-banner p { margin: 0; font-size: .88rem; line-height: 1.5; color: var(--ink-soft); }
 .results-feature-grid { display: grid; gap: 1.25rem; }
 .section-title { margin-bottom: 1.35rem; }
 .section-title h2 { margin: 0; color: var(--ink); font-size: clamp(2rem, 4vw, 2.7rem); font-weight: 600; letter-spacing: -.045em; }

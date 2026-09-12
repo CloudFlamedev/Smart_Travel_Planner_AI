@@ -1,4 +1,4 @@
-import { BusFront, Clock3, Lightbulb, MapPin, Plane, Route, Sparkles, TrainFront } from 'lucide-react'
+import { AlertTriangle, BusFront, Clock3, Lightbulb, MapPin, Plane, Route, Sparkles, TrainFront } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { TransportOption, TripPlan } from '../types'
 
@@ -28,6 +28,13 @@ export function TripResults({ plan }: { plan: TripPlan }) {
             <div className="snapshot-details"><span>{plan.travelers} traveler{plan.travelers > 1 ? 's' : ''}</span><span>{plan.duration} days</span><strong>{formatBudget(plan.budget)}</strong></div>
           </div>
         </header>
+
+        {plan.budget_warning && (
+          <div className="budget-warning-banner" role="alert">
+            <AlertTriangle aria-hidden="true" size={19} />
+            <p>{plan.budget_warning}</p>
+          </div>
+        )}
 
         <div className="results-feature-grid">
           <section>

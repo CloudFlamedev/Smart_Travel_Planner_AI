@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from app.core.config import Settings
 from app.schemas.trip import TripPlan, TripRequest, trip_plan_groq_schema
+from app.services.budget_service import budget_warning_message, check_budget_feasibility
 from app.services.transport_service import apply_transport_duration_estimates
 
 
@@ -106,9 +107,16 @@ class GroqService:
                 request.destination,
                 generated.transport_options,
             )
+            feasibility = check_budget_feasibility(
+                request.source, request.destination, request.duration, request.travelers, request.budget
+            )
+            warning = budget_warning_message(
+                request.source, request.destination, request.duration, request.travelers, request.budget, feasibility
+            )
             # Preserve request facts and validate again so the final API response
-            # still has one itinerary day for each requested trip day and uses
-            # backend-calculated transport durations.
+            # still has one itinerary day for each requested trip day, uses
+            # backend-calculated transport durations, and carries a
+            # backend-computed budget feasibility warning (never LLM-generated).
             return TripPlan.model_validate(
                 generated.model_dump()
                 | {
@@ -118,6 +126,7 @@ class GroqService:
                     "travelers": request.travelers,
                     "budget": request.budget,
                     "transport_options": transport_options,
+                    "budget_warning": warning,
                 }
             )
         except httpx.TimeoutException as exc:
